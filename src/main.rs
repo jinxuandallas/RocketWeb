@@ -1,19 +1,29 @@
 mod models;
 
+use std::fs;
 use std::ptr::copy_nonoverlapping;
 use mysql::*;
 use mysql::prelude::Queryable;
 use rocket::{get, launch, routes, State};
+use rocket::response::Redirect;
 use rocket::serde::json::{json, Value};
 use rocket::tokio::sync::Mutex;
 use crate::models::models::Person;
+use rocket::fs::NamedFile;
 
 struct Dbconn{
     conn:PooledConn
 }
 
-
 #[get("/")]
+async fn index() -> NamedFile {
+    //"hello".to_string()
+    //et path=fs::canonicalize("/html/index.html").unwrap().to_str().unwrap().to_string();
+    //path.to_string()
+    //fs::canonicalize("./html/index.html").unwrap().display().to_string()
+    NamedFile::open("./html/index.html").await.unwrap()
+}
+#[get("/getall")]
 async fn get_all(sconn:&State<Mutex<Dbconn>>)->Value{
     let mut conn=& mut sconn.lock().await.conn;
     let result:Vec<Row>=conn.query("SELECT * FROM person").unwrap();
@@ -44,5 +54,5 @@ fn rocket() -> _ {
     rocket::build()
         .manage(db_conn)
         // register routes
-        .mount("/", routes![get_all])
+        .mount("/", routes![get_all,index])
 }
