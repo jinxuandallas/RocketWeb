@@ -8,53 +8,43 @@
     <script type="module">
         //import Vue from 'vue';
         //import axios from 'axios';
-        new Vue({
+
+        var myVue=new Vue({
             el: '#app',
-            template: `#c1`,
+            template: `c1`
+        })
+        export default {
             data() {
                 return {
-                    items: [
-                        {id: 1, name: 'Item 1'},
-                        {id: 2, name: 'Item 2'},
-                        {id: 3, name: 'Item 3'}
-                    ]
+                    items:[]
                 };
             },
-            created(){
+            created() {
                 this.fetchData();
             },
-
             methods: {
                 async fetchData() {
-                    //window.alert("xx");
                     try{
-                        const response = await axios.get('http://127.0.0.1:8000/getall');
+                        const response = await axios.get('http://localhost:8000/getall');
                         this.items = response.data;
                     } catch (error) {
                         console.error(error);
                     }
                 }
             }
-        })
-
+        }
 
     </script>
 </head>
 <body>
-<h1>Hello2</h1>
+<h1>Hello</h1>
 <div id="app">
 <template id="c1">
     <div>
-        <table>
-            <tr v-for="item in items">
-                <td>{{item.id}}</td>
-                <td>{{item.name}}</td>
-                <td>{{item.age}}</td>
-        </tr></table>
-        <!--<ul>
-            <li v-for="item in items" :key="item.id"> {{ item.name }}</li>
+        <p>{{ message }}</p>
+        <ul>
+            <li v-for="item in items" :key="item.id">{{ item.name }}</li>
         </ul>
-        -->
     </div>
 </template>
 </div>
