@@ -5,5 +5,10 @@ edition = "2021"
 
 [dependencies]
 mysql = "25.0.1"
-rocket = { version = "0.5.1", features = ["json"] }
+rocket = { version = "0.5.1", features = ["json","tls"] }
 rocket_cors = "0.6.0"
+
+
+[default.tls]
+key = "./ssl/key.pem"     # Path or bytes to DER-encoded ASN.1 PKCS#1/#8 or SEC1 key.
+certs = "./ssl/cert.pem"

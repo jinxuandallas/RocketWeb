@@ -1,10 +1,11 @@
 mod models;
 
 
-
+use rocket::Config;
 use mysql::*;
 use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
+use rocket::figment::Figment;
 use rocket::serde::json::{json, Value};
 use rocket::tokio::sync::Mutex;
 use crate::models::models::Person;
@@ -15,6 +16,7 @@ struct Dbconn{
     conn:PooledConn
 }
 
+/// 解决跨域问题
 fn make_cors() -> CorsOptions {
     let allowed_origins=AllowedOrigins::all();
 
@@ -62,7 +64,17 @@ fn rocket() -> _ {
 
     let cors= make_cors().to_cors().unwrap();
 
-    rocket::build()
+    let config=Config::from(
+        Figment::from(rocket::Config::default())
+            .merge(("tls.certs","./ssl/cert.pem"))
+            .merge(("tls.key","./ssl/key.pem"))
+            .merge(("address","127.0.0.1"))
+            .merge(("port",8000))
+
+    );
+
+
+    rocket::custom(config)
         .attach(cors)
         .manage(db_conn)
         // register routes
