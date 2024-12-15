@@ -1,20 +1,29 @@
 mod models;
 
-use std::fs;
-use std::ptr::copy_nonoverlapping;
+
+
 use mysql::*;
 use mysql::prelude::Queryable;
-use rocket::{get, launch, routes, State};
-use rocket::response::Redirect;
+use rocket::{get, http, launch, routes, State};
 use rocket::serde::json::{json, Value};
 use rocket::tokio::sync::Mutex;
 use crate::models::models::Person;
 use rocket::fs::NamedFile;
+use rocket_cors::{AllowedOrigins, CorsOptions};
 
 struct Dbconn{
     conn:PooledConn
 }
 
+fn make_cors() -> CorsOptions {
+    let allowed_origins=AllowedOrigins::all();
+
+    CorsOptions::default()
+        .allowed_origins(allowed_origins)
+        .allowed_methods(vec![http::Method::Get,http::Method::Post].into_iter().map(From::from).collect())
+        .allowed_headers(rocket_cors::AllOrSome::All)
+        .allow_credentials(true)
+}
 #[get("/")]
 async fn index() -> NamedFile {
     //"hello".to_string()
@@ -51,7 +60,10 @@ fn rocket() -> _ {
         conn
     });
 
+    let cors= make_cors().to_cors().unwrap();
+
     rocket::build()
+        .attach(cors)
         .manage(db_conn)
         // register routes
         .mount("/", routes![get_all,index])

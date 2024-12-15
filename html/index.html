@@ -28,7 +28,7 @@
                 async fetchData() {
                     //window.alert("xx");
                     try{
-                        const response = await axios.get('http://127.0.0.1:8000/getall');
+                        const response = await axios.get('http://localhost:8000/getall');
                         this.items = response.data;
                     } catch (error) {
                         console.error(error);
@@ -45,7 +45,12 @@
 <div id="app">
 <template id="c1">
     <div>
-        <table>
+        <table border="1" style="border-collapse: collapse">
+            <tr>
+                <th>ID</th>
+                <th>名字</th>
+                <th>年龄</th>
+            </tr>
             <tr v-for="item in items">
                 <td>{{item.id}}</td>
                 <td>{{item.name}}</td>
