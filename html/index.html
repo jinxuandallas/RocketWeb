@@ -3,65 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script type="module">
-        //import Vue from 'vue';
-        //import axios from 'axios';
-        new Vue({
-            el: '#app',
-            template: `#c1`,
-            data() {
-                return {
-                    items: [
-                        {id: 1, name: 'Item 1'},
-                        {id: 2, name: 'Item 2'},
-                        {id: 3, name: 'Item 3'}
-                    ]
-                };
-            },
-            created(){
-                this.fetchData();
-            },
+    <script>
 
-            methods: {
-                async fetchData() {
-                    //window.alert("xx");
-                    try{
-                        const response = await axios.get('http://localhost:8000/getall');
-                        this.items = response.data;
-                    } catch (error) {
-                        console.error(error);
-                    }
-                }
-            }
-        })
+        function confirm()
+       {
+           const data = {
+               username:  document.getElementById("username").value,
+               password:  document.getElementById("password").value
+           };
 
+           // 定义请求配置（可选）
+           const config = {
+               headers: {
+                   'Content-Type': 'application/json',
+                   // 设置请求头为JSON格式
+                   // 可以添加其他自定义的头部信息
+               }
+           };
+
+
+           /*
+           axios.post('https://localhost:8000/login', data, config)
+               .then(function (response) {
+                   console.log(response.data); // 请求成功，处理响应数据
+               })
+               .catch(function (error) {
+                   console.error('There was an error!', error); // 请求失败，处理错误
+               });
+            */
+
+           axios.post('https://127.0.0.1:8000/login', data, config)
+               .then(function (response) {
+                   alert(response.data);
+                   console.log(response.data); // 请求成功，处理响应数据
+               })
+               .catch(function (error) {
+                   console.error('There was an error!', error); // 请求失败，处理错误
+               });
+           /*
+          try{
+              const response = axios.get('https://127.0.0.1:8000/getall');
+              this.items = response.data;
+              alert(response.data);
+          } catch (error) {
+              console.error(error);
+          }
+*/
+
+
+           //document.getElementById("t").textContent = data.password;
+       }
 
     </script>
 </head>
 <body>
-<h1>Hello2</h1>
-<div id="app">
-<template id="c1">
+<h1>登陆</h1>
+
     <div>
         <table border="1" style="border-collapse: collapse">
             <tr>
-                <th>ID</th>
-                <th>名字</th>
-                <th>年龄</th>
+                <td colspan="2"></td>
             </tr>
-            <tr v-for="item in items">
-                <td>{{item.id}}</td>
-                <td>{{item.name}}</td>
-                <td>{{item.age}}</td>
-        </tr></table>
+            <tr>
+                <td>用户名：</td>
+                <td><input id="username" type="text" /></td>
+
+            </tr>
+            <tr>
+                <td>密码：</td>
+                <td><input id="password" type="password" /></td>
+            </tr>
+            <tr>
+                <td colspan="2"><button id="confirm" onclick="confirm()">确认</button></td>
+            </tr>
+        </table>
         <!--<ul>
             <li v-for="item in items" :key="item.id"> {{ item.name }}</li>
         </ul>
         -->
+        <label id="t">xx</label>
     </div>
-</template>
-</div>
+
 </body>
 </html>

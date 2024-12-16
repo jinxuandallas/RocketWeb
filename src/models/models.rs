@@ -7,3 +7,10 @@ pub struct Person{
     pub name: String,
     pub age:u32,
 }
+
+#[derive(Deserialize,Serialize)]
+#[serde(crate = "rocket::serde")]
+pub struct User{
+    pub username:String,
+    pub password:String,
+}

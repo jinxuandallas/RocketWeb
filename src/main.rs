@@ -1,14 +1,14 @@
 mod models;
 
 
-use rocket::Config;
+use rocket::{post, Config};
 use mysql::*;
 use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
 use rocket::figment::Figment;
-use rocket::serde::json::{json, Value};
+use rocket::serde::json::{json, Json, Value};
 use rocket::tokio::sync::Mutex;
-use crate::models::models::Person;
+use crate::models::models::{Person, User};
 use rocket::fs::NamedFile;
 use rocket_cors::{AllowedOrigins, CorsOptions};
 
@@ -51,6 +51,15 @@ async fn get_all(sconn:&State<Mutex<Dbconn>>)->Value{
     json!(persons)
 }
 
+
+#[post("/login",format="json",data="<user>")]
+async fn login(user:Json<User>)->Value{
+    let login_user=user.into_inner();
+    println!("{} {}",login_user.username,login_user.password);
+    json!("Ok")
+}
+
+
 #[launch]
 fn rocket() -> _ {
 
@@ -78,5 +87,5 @@ fn rocket() -> _ {
         .attach(cors)
         .manage(db_conn)
         // register routes
-        .mount("/", routes![get_all,index])
+        .mount("/", routes![get_all,index,login])
 }

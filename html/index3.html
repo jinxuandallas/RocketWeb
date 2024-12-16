@@ -8,45 +8,58 @@
     <script type="module">
         //import Vue from 'vue';
         //import axios from 'axios';
-
-        var myVue=new Vue({
+        new Vue({
             el: '#app',
-            template: `c1`
-        })
-        export default {
+            template: `#c1`,
             data() {
                 return {
-                    items:[]
+                    items: [
+                        {id: 1, name: 'Item 1'},
+                        {id: 2, name: 'Item 2'},
+                        {id: 3, name: 'Item 3'}
+                    ]
                 };
             },
-            created() {
+            created(){
                 this.fetchData();
             },
+
             methods: {
                 async fetchData() {
+                    //window.alert("xx");
                     try{
                         const response = await axios.get('https://127.0.0.1:8000/getall');
                         this.items = response.data;
                     } catch (error) {
                         console.error(error);
                     }
-
-                    alert(this.items.length);
                 }
             }
-        }
+        })
+
 
     </script>
 </head>
 <body>
-<h1>Hello</h1>
+<h1>Hello2</h1>
 <div id="app">
 <template id="c1">
     <div>
-
-        <ul>
-            <li v-for="item in items" :key="item.id">{{ item.name }}</li>
+        <table border="1" style="border-collapse: collapse">
+            <tr>
+                <th>ID</th>
+                <th>名字</th>
+                <th>年龄</th>
+            </tr>
+            <tr v-for="item in items">
+                <td>{{item.id}}</td>
+                <td>{{item.name}}</td>
+                <td>{{item.age}}</td>
+        </tr></table>
+        <!--<ul>
+            <li v-for="item in items" :key="item.id"> {{ item.name }}</li>
         </ul>
+        -->
     </div>
 </template>
 </div>
