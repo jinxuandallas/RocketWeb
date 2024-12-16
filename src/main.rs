@@ -1,6 +1,6 @@
 mod models;
 
-
+use bcrypt::{hash, verify, DEFAULT_COST};
 use rocket::{post, Config};
 use mysql::*;
 use mysql::prelude::Queryable;
@@ -9,11 +9,15 @@ use rocket::figment::Figment;
 use rocket::serde::json::{json, Json, Value};
 use rocket::tokio::sync::Mutex;
 use crate::models::models::{Person, User};
-use rocket::fs::NamedFile;
+use rocket::fs::{relative, FileServer, NamedFile};
 use rocket_cors::{AllowedOrigins, CorsOptions};
 
 struct Dbconn{
     conn:PooledConn
+}
+struct UserResult {
+    password:String,
+    token:String,
 }
 
 /// 解决跨域问题
@@ -53,10 +57,49 @@ async fn get_all(sconn:&State<Mutex<Dbconn>>)->Value{
 
 
 #[post("/login",format="json",data="<user>")]
-async fn login(user:Json<User>)->Value{
+async fn login(sconn:&State<Mutex<Dbconn>>,user:Json<User>)->Value{
     let login_user=user.into_inner();
-    println!("{} {}",login_user.username,login_user.password);
-    json!("Ok")
+    //let pwd=hash(&login_user.password,DEFAULT_COST).unwrap();
+    /*println!("{}",&pwd);
+
+    let mut conn=& mut sconn.lock().await.conn;
+    let result:Option<String>=conn.exec_first("SELECT token FROM user where username=:name and password=:pwd",params! {
+        "name" => login_user.username.as_str(),
+        "pwd"=> pwd,
+    }).unwrap();
+
+    match result {
+        Some(token) => {json!(format!("token:{}", token))},
+        None => {json!("failed")}
+    }
+    */
+    let mut conn=& mut sconn.lock().await.conn;
+    let result:Option<UserResult>=conn.exec_first("SELECT password,token FROM user where username=:name",params! {
+        "name" => login_user.username.as_str(),
+    }).map(
+        |row|{
+        row.map(|(pwd,tok)|UserResult{
+            password:pwd,
+            token:tok})
+    }).
+        unwrap();
+
+    match result {
+        Some(ur)=>{
+            if verify(login_user.password,&ur.password).unwrap()
+            {
+                json!(format!("token:{}", &ur.token))
+            }
+            else {
+                json!("密码错误")
+            }
+
+        }
+        None=>{json!("用户名错误")}
+    }
+
+    //println!("{} {} {}",login_user.username,login_user.password,hash(&login_user.password,DEFAULT_COST).unwrap());
+    //json!("Ok")
 }
 
 
@@ -88,4 +131,5 @@ fn rocket() -> _ {
         .manage(db_conn)
         // register routes
         .mount("/", routes![get_all,index,login])
+        .mount("/", FileServer::from(relative!("html")))
 }

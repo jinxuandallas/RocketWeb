@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bcrypt = "0.16.0"
 mysql = "25.0.1"
 rocket = { version = "0.5.1", features = ["json","tls"] }
 rocket_cors = "0.6.0"

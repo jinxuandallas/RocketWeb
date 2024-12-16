@@ -36,8 +36,14 @@
 
            axios.post('https://127.0.0.1:8000/login', data, config)
                .then(function (response) {
-                   alert(response.data);
-                   console.log(response.data); // 请求成功，处理响应数据
+                   if (response.data.substring(0,5) == "token") {
+                       document.getElementById("status").textContent = "登陆成功";
+                       location.href = "main.html"
+                   }
+                   else
+                       document.getElementById("status").textContent = response.data;
+                   //alert(response.data);
+                   //console.log(response.data); // 请求成功，处理响应数据
                })
                .catch(function (error) {
                    console.error('There was an error!', error); // 请求失败，处理错误
@@ -76,14 +82,14 @@
                 <td><input id="password" type="password" /></td>
             </tr>
             <tr>
-                <td colspan="2"><button id="confirm" onclick="confirm()">确认</button></td>
+                <td colspan="2"><button id="confirm" onclick="confirm()">登陆</button></td>
             </tr>
         </table>
         <!--<ul>
             <li v-for="item in items" :key="item.id"> {{ item.name }}</li>
         </ul>
         -->
-        <label id="t">xx</label>
+        <label id="status" style="color: red"></label>
     </div>
 
 </body>
