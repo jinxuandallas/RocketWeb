@@ -1,7 +1,7 @@
 mod models;
 
 use bcrypt::{hash, verify, DEFAULT_COST};
-use rocket::{post, Config};
+use rocket::{post, put, Config};
 use mysql::*;
 use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
@@ -55,6 +55,20 @@ async fn get_all(sconn:&State<Mutex<Dbconn>>)->Value{
     json!(persons)
 }
 
+
+#[put("/update",format="json", data="<person>")]
+async fn update(sconn:&State<Mutex<Dbconn>>,person:Json<Person>)->Value {
+    let update_person=person.into_inner();
+    let mut conn=& mut sconn.lock().await.conn;
+    let stmt = conn.prep("update person set name=:name, age=:age where id=:id")
+        .unwrap();
+    conn.exec_drop(&stmt, params! {
+     "name" => update_person.name,
+     "age" => update_person.age,
+     "id" => update_person.id,
+}).unwrap();
+    json!("Successed")
+}
 
 #[post("/login",format="json",data="<user>")]
 async fn login(sconn:&State<Mutex<Dbconn>>,user:Json<User>)->Value{
@@ -130,6 +144,6 @@ fn rocket() -> _ {
         .attach(cors)
         .manage(db_conn)
         // register routes
-        .mount("/", routes![get_all,index,login])
+        .mount("/", routes![get_all,index,login,update])
         .mount("/", FileServer::from(relative!("html")))
 }

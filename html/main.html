@@ -17,7 +17,12 @@
                         {id: 1, name: 'Item 1'},
                         {id: 2, name: 'Item 2'},
                         {id: 3, name: 'Item 3'}
-                    ]
+                    ],
+                    message: '',
+                    update_id:0,
+                    update_name:'',
+                    update_age:'',
+                    update_panel:false,
                 };
             },
             created(){
@@ -33,6 +38,47 @@
                     } catch (error) {
                         console.error(error);
                     }
+                },
+
+                modifyItems(rowIndex) {
+                    this.message = `${this.items[rowIndex].id} ${this.items[rowIndex].name}`;
+                    this.update_id=`${this.items[rowIndex].id}`
+                    this.update_name=`${this.items[rowIndex].name}`
+                    this.update_age=`${this.items[rowIndex].age}`
+                    this.update_panel=true;
+
+                },
+
+                update_cancel()
+                {
+                    this.update_panel=false;
+                },
+
+                update_submit(){
+                    //this.message=`${this.update_name} ${this.update_age} `;
+                    let config = {
+                        headers: {
+                            'Content-Type': 'application/json',
+
+                        }
+                    };
+
+                    let update_data={
+                        id:parseInt(this.update_id),
+                        name:this.update_name,
+                        age:parseInt(this.update_age)
+                    }
+                    //.message=update_data;
+
+                    axios.put('https://127.0.0.1:8000/update', update_data, config)
+                        .then(function (response) {
+                            location.reload(true);
+
+                        })
+                        .catch(function (error) {
+                            console.error('There was an error!', error); // 请求失败，处理错误
+                        });
+                    this.update_panel=false;
                 }
             }
         })
@@ -50,16 +96,26 @@
                 <th>ID</th>
                 <th>名字</th>
                 <th>年龄</th>
+                <th>功能</th>
             </tr>
-            <tr v-for="item in items">
+            <tr v-for="(item,rowIndex) in items">
                 <td>{{item.id}}</td>
                 <td>{{item.name}}</td>
                 <td>{{item.age}}</td>
+                <td><button @click="modifyItems(rowIndex)">修改</button></td>
         </tr></table>
         <!--<ul>
-            <li v-for="item in items" :key="item.id"> {{ item.name }}</li>
+            <li v-for="item in items" :key="item.update_id"> {{ item.name }}</li>
         </ul>
         -->
+        <p>{{message}}</p>
+        <div style="border: 1px solid black;background-color:yellow;padding: 10px;width: 150px"  v-show="update_panel" >
+            <label>ID: {{update_id}}</label><br>
+            姓名：<input type="text" v-model="update_name" style="width: 80px"></input><br>
+            年龄：<input type="number" v-model="update_age" style="width: 80px"></input>
+            <br><br>
+            <button @click="update_submit">确定</button>&nbsp;&nbsp;&nbsp;&nbsp;<button @click="update_cancel">取消</button>
+        </div>
     </div>
 </template>
 </div>
