@@ -13,3 +13,11 @@ rocket_cors = "0.6.0"
 [default.tls]
 key = "./ssl/key.pem"     # Path or bytes to DER-encoded ASN.1 PKCS#1/#8 or SEC1 key.
 certs = "./ssl/cert.pem"
+
+[profile.release]
+lto = true # 启用链路时间优化
+opt-level = "z"  # 针对规模进行优化
+codegen-units = 1 # 减少并行代码生成单元以提高优化
+debug = false # 禁用调试信息生成，从而减小最终二进制文件的大小
+strip = true # 删除编译生成的二进制文件中的调试信息和符号
+panic = "abort"

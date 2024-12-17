@@ -1,7 +1,8 @@
 mod models;
+mod basic_auth;
 
 use bcrypt::{hash, verify, DEFAULT_COST};
-use rocket::{delete, post, put, Config};
+use rocket::{catch, catchers, delete, post, put, Config};
 use mysql::*;
 use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
@@ -10,7 +11,9 @@ use rocket::serde::json::{json, Json, Value};
 use rocket::tokio::sync::Mutex;
 use crate::models::models::{Person, User};
 use rocket::fs::{relative, FileServer, NamedFile};
+use rocket::response::Redirect;
 use rocket_cors::{AllowedOrigins, CorsOptions};
+use crate::basic_auth::BasicAuth;
 
 struct Dbconn{
     conn:PooledConn
@@ -39,7 +42,8 @@ async fn index() -> NamedFile {
     NamedFile::open("./html/index.html").await.unwrap()
 }
 #[get("/getall")]
-async fn get_all(sconn:&State<Mutex<Dbconn>>)->Value{
+async fn get_all(sconn:&State<Mutex<Dbconn>>,auth:BasicAuth)->Value{
+    println!("{}",auth.0);
     let mut conn=& mut sconn.lock().await.conn;
     let result:Vec<Row>=conn.query("SELECT * FROM person").unwrap();
 
@@ -141,6 +145,10 @@ async fn login(sconn:&State<Mutex<Dbconn>>,user:Json<User>)->Value{
     //json!("Ok")
 }
 
+#[catch(401)]
+async fn unauthorized() -> Value {
+    json!("unauthorized")
+}
 
 #[launch]
 fn rocket() -> _ {
@@ -172,4 +180,5 @@ fn rocket() -> _ {
         .mount("/", routes![get_all,index,login,update,create,delete])
         // .mount("/del", routes![delete])
         .mount("/", FileServer::from(relative!("html")))
+        .register("/", catchers!(unauthorized))
 }

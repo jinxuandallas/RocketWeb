@@ -26,7 +26,8 @@
                     tableKey:0,
                     add_name:'',
                     add_age:0,
-                    add_panel:false
+                    add_panel:false,
+                    authToken:sessionStorage.getItem('authToken'),
                 };
             },
             created(){
@@ -35,15 +36,37 @@
 
             methods: {
                 async fetchData() {
+                    //this.message=this.authToken;
                     //window.alert("xx");
                     try{
-                        const response = await axios.get('https://127.0.0.1:8000/getall');
+                        let config = {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `${this.authToken}`
+
+                            }
+                        };
+
+                        //alert(JSON.stringify(config));
+
+                        const response = await axios.get('https://127.0.0.1:8000/getall',config);
+
+
                         this.items = response.data;
                     } catch (error) {
+                        this.UnauthorizedRedirect(error);
+                        // if(error.response.data==="unauthorized") {
+                        //     location.href = '/';
+                        // }
+
                         console.error(error);
                     }
                 },
-
+                UnauthorizedRedirect(error) {
+                    if(error.response.data==="unauthorized") {
+                        location.href = '/';
+                    }
+                },
                 modifyItem(rowIndex) {
                     this.message = `${this.items[rowIndex].id} ${this.items[rowIndex].name}`;
                     this.update_id=`${this.items[rowIndex].id}`
@@ -74,6 +97,7 @@
                     let config = {
                         headers: {
                             'Content-Type': 'application/json',
+                            'Authorization': `${this.authToken}`
 
                         }
                     };
@@ -87,6 +111,7 @@
 
                     await axios.put('https://127.0.0.1:8000/update', update_data, config)
                         .catch(function (error) {
+                            this.UnauthorizedRedirect(error);
                             console.error('There was an error!', error); // 请求失败，处理错误
                         });
 
@@ -103,7 +128,7 @@
                     let config = {
                         headers: {
                             'Content-Type': 'application/json',
-
+                            'Authorization': `${this.authToken}`
                         }
                     };
 
@@ -115,10 +140,11 @@
                     //.message=update_data;
 
                     await axios.post('https://127.0.0.1:8000/create', update_data, config)
-                        .then(function (response) {
-                            this.message = `${response.data}`;
-                        })
+                        // .then(function (response) {
+                            // this.message = `${response.data}`;
+                        // })
                         .catch(function (error) {
+                            this.UnauthorizedRedirect(error);
                             console.error('There was an error!', error); // 请求失败，处理错误
                         });
 
@@ -134,9 +160,16 @@
                     //let uri='https://127.0.0.1:8000/del/'+this.items[rowIndex].id;
                     //alert(uri);
                     try{
-                        await axios.delete('https://127.0.0.1:8000/del/'+this.items[rowIndex].id);
+                        let config = {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `${this.authToken}`
+                            }
+                        };
+                        await axios.delete('https://127.0.0.1:8000/del/'+this.items[rowIndex].id, config);
 
                     } catch (error) {
+                        this.UnauthorizedRedirect(error);
                         console.error(error);
                     }
 
