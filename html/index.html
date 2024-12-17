@@ -7,7 +7,7 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script>
 
-        function confirm()
+        async function confirm()
        {
            const data = {
                username:  document.getElementById("username").value,
@@ -34,7 +34,7 @@
                });
             */
 
-           axios.post('https://127.0.0.1:8000/login', data, config)
+           await axios.post('https://127.0.0.1:8000/login', data, config)
                .then(function (response) {
                    if (response.data.substring(0,5) == "token") {
                        document.getElementById("status").textContent = "登陆成功";

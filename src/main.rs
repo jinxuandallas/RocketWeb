@@ -1,7 +1,7 @@
 mod models;
 
 use bcrypt::{hash, verify, DEFAULT_COST};
-use rocket::{post, put, Config};
+use rocket::{delete, post, put, Config};
 use mysql::*;
 use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
@@ -55,6 +55,31 @@ async fn get_all(sconn:&State<Mutex<Dbconn>>)->Value{
     json!(persons)
 }
 
+#[post("/create",format="json", data="<person>")]
+async fn create(sconn:&State<Mutex<Dbconn>>,person:Json<Person>)->Value {
+    let add_person=person.into_inner();
+    let mut conn=& mut sconn.lock().await.conn;
+    let stmt = conn.prep("INSERT INTO person (name, age) VALUES (:name, :age)")
+        .unwrap();
+    conn.exec_drop(&stmt, params! {
+     "name" => add_person.name,
+     "age" => add_person.age,
+}).unwrap();
+    json!(conn.last_insert_id())
+}
+
+#[delete("/del/<id>")]
+async fn delete(id:i32,sconn:&State<Mutex<Dbconn>>)->Value {
+    let mut conn=& mut sconn.lock().await.conn;
+    println!("{}",id);
+    let stmt = conn.prep("delete from person where id=:id")
+        .unwrap();
+    conn.exec_drop(&stmt, params! {
+     "id" => id,
+
+}).unwrap();
+    json!(conn.last_insert_id())
+}
 
 #[put("/update",format="json", data="<person>")]
 async fn update(sconn:&State<Mutex<Dbconn>>,person:Json<Person>)->Value {
@@ -144,6 +169,7 @@ fn rocket() -> _ {
         .attach(cors)
         .manage(db_conn)
         // register routes
-        .mount("/", routes![get_all,index,login,update])
+        .mount("/", routes![get_all,index,login,update,create,delete])
+        // .mount("/del", routes![delete])
         .mount("/", FileServer::from(relative!("html")))
 }

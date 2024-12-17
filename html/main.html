@@ -23,6 +23,10 @@
                     update_name:'',
                     update_age:'',
                     update_panel:false,
+                    tableKey:0,
+                    add_name:'',
+                    add_age:0,
+                    add_panel:false
                 };
             },
             created(){
@@ -40,13 +44,19 @@
                     }
                 },
 
-                modifyItems(rowIndex) {
+                modifyItem(rowIndex) {
                     this.message = `${this.items[rowIndex].id} ${this.items[rowIndex].name}`;
                     this.update_id=`${this.items[rowIndex].id}`
                     this.update_name=`${this.items[rowIndex].name}`
                     this.update_age=`${this.items[rowIndex].age}`
                     this.update_panel=true;
+                    this.add_panel=false;
 
+                },
+
+                add(){
+                    this.add_panel=true;
+                    this.update_panel=false;
                 },
 
                 update_cancel()
@@ -54,7 +64,12 @@
                     this.update_panel=false;
                 },
 
-                update_submit(){
+                add_cancel()
+                {
+                    this.add_panel=false;
+                },
+
+                async update_submit(){
                     //this.message=`${this.update_name} ${this.update_age} `;
                     let config = {
                         headers: {
@@ -70,17 +85,69 @@
                     }
                     //.message=update_data;
 
-                    axios.put('https://127.0.0.1:8000/update', update_data, config)
-                        .then(function (response) {
-                            location.reload(true);
+                    await axios.put('https://127.0.0.1:8000/update', update_data, config)
+                        .catch(function (error) {
+                            console.error('There was an error!', error); // 请求失败，处理错误
+                        });
 
+                    //this.items=[{id: 1, name: 'Item 1'},{id: 2, name: 'Item 2'},{id: 3, name: 'Item 3'}];
+                    //this.tableKey+=1;
+
+                    this.update_panel=false;
+
+                    await this.fetchData();
+                },
+
+                async add_submit(){
+                    //this.message=`${this.update_name} ${this.update_age} `;
+                    let config = {
+                        headers: {
+                            'Content-Type': 'application/json',
+
+                        }
+                    };
+
+                    let update_data={
+                        id:0,
+                        name:this.add_name,
+                        age:parseInt(this.add_age)
+                    }
+                    //.message=update_data;
+
+                    await axios.post('https://127.0.0.1:8000/create', update_data, config)
+                        .then(function (response) {
+                            this.message = `${response.data}`;
                         })
                         .catch(function (error) {
                             console.error('There was an error!', error); // 请求失败，处理错误
                         });
-                    this.update_panel=false;
+
+                    //this.items=[{id: 1, name: 'Item 1'},{id: 2, name: 'Item 2'},{id: 3, name: 'Item 3'}];
+                    //this.tableKey+=1;
+
+                    this.add_panel=false;
+
+                    await this.fetchData();
+                },
+
+                async delItem(rowIndex) {
+                    //let uri='https://127.0.0.1:8000/del/'+this.items[rowIndex].id;
+                    //alert(uri);
+                    try{
+                        await axios.delete('https://127.0.0.1:8000/del/'+this.items[rowIndex].id);
+
+                    } catch (error) {
+                        console.error(error);
+                    }
+
+                    await this.fetchData();
+
+                    this.message='删除成功';
                 }
+
             }
+
+
         })
 
 
@@ -91,7 +158,7 @@
 <div id="app">
 <template id="c1">
     <div>
-        <table border="1" style="border-collapse: collapse">
+        <table border="1" style="border-collapse: collapse" :key="tableKey">
             <tr>
                 <th>ID</th>
                 <th>名字</th>
@@ -102,19 +169,28 @@
                 <td>{{item.id}}</td>
                 <td>{{item.name}}</td>
                 <td>{{item.age}}</td>
-                <td><button @click="modifyItems(rowIndex)">修改</button></td>
+                <td><button @click="modifyItem(rowIndex)">修改</button>&nbsp;&nbsp;<button @click="delItem(rowIndex)">删除</button></td>
         </tr></table>
         <!--<ul>
             <li v-for="item in items" :key="item.update_id"> {{ item.name }}</li>
         </ul>
         -->
         <p>{{message}}</p>
+        <button @click="add">添加</button><br><br>
         <div style="border: 1px solid black;background-color:yellow;padding: 10px;width: 150px"  v-show="update_panel" >
             <label>ID: {{update_id}}</label><br>
             姓名：<input type="text" v-model="update_name" style="width: 80px"></input><br>
             年龄：<input type="number" v-model="update_age" style="width: 80px"></input>
             <br><br>
             <button @click="update_submit">确定</button>&nbsp;&nbsp;&nbsp;&nbsp;<button @click="update_cancel">取消</button>
+        </div>
+
+        <div style="border: 1px solid black;background-color:yellow;padding: 10px;width: 150px"  v-show="add_panel" >
+            <br>
+            姓名：<input type="text" v-model="add_name" style="width: 80px"></input><br>
+            年龄：<input type="number" v-model="add_age" style="width: 80px"></input>
+            <br><br>
+            <button @click="add_submit">确定</button>&nbsp;&nbsp;&nbsp;&nbsp;<button @click="add_cancel">取消</button>
         </div>
     </div>
 </template>
