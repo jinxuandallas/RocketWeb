@@ -1,7 +1,7 @@
 mod models;
 mod basic_auth;
 
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt::{ verify, DEFAULT_COST};
 use rocket::{catch, catchers, delete, post, put, Config};
 use mysql::*;
 use mysql::prelude::Queryable;
@@ -11,7 +11,6 @@ use rocket::serde::json::{json, Json, Value};
 use rocket::tokio::sync::Mutex;
 use crate::models::models::{Person, User};
 use rocket::fs::{relative, FileServer, NamedFile};
-use rocket::response::Redirect;
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use crate::basic_auth::BasicAuth;
 
@@ -42,8 +41,8 @@ async fn index() -> NamedFile {
     NamedFile::open("./html/index.html").await.unwrap()
 }
 #[get("/getall")]
-async fn get_all(sconn:&State<Mutex<Dbconn>>,auth:BasicAuth)->Value{
-    println!("{}",auth.0);
+async fn get_all(sconn:&State<Mutex<Dbconn>>,_auth:BasicAuth)->Value{
+    // println!("{}",auth.0);
     let mut conn=& mut sconn.lock().await.conn;
     let result:Vec<Row>=conn.query("SELECT * FROM person").unwrap();
 
@@ -60,7 +59,7 @@ async fn get_all(sconn:&State<Mutex<Dbconn>>,auth:BasicAuth)->Value{
 }
 
 #[post("/create",format="json", data="<person>")]
-async fn create(sconn:&State<Mutex<Dbconn>>,person:Json<Person>)->Value {
+async fn create(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)->Value {
     let add_person=person.into_inner();
     let mut conn=& mut sconn.lock().await.conn;
     let stmt = conn.prep("INSERT INTO person (name, age) VALUES (:name, :age)")
@@ -73,7 +72,7 @@ async fn create(sconn:&State<Mutex<Dbconn>>,person:Json<Person>)->Value {
 }
 
 #[delete("/del/<id>")]
-async fn delete(id:i32,sconn:&State<Mutex<Dbconn>>)->Value {
+async fn delete(id:i32,sconn:&State<Mutex<Dbconn>>,_auth:BasicAuth)->Value {
     let mut conn=& mut sconn.lock().await.conn;
     println!("{}",id);
     let stmt = conn.prep("delete from person where id=:id")
@@ -86,7 +85,7 @@ async fn delete(id:i32,sconn:&State<Mutex<Dbconn>>)->Value {
 }
 
 #[put("/update",format="json", data="<person>")]
-async fn update(sconn:&State<Mutex<Dbconn>>,person:Json<Person>)->Value {
+async fn update(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)->Value {
     let update_person=person.into_inner();
     let mut conn=& mut sconn.lock().await.conn;
     let stmt = conn.prep("update person set name=:name, age=:age where id=:id")
