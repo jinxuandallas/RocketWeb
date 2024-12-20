@@ -1,30 +1,39 @@
 mod models;
 mod basic_auth;
+mod schema;
+//#[macro_use] extern crate diesel;
 
- // #[macro_use] extern crate diesel;
+use diesel::{RunQueryDsl, query_dsl::methods::{FindDsl, LimitDsl}, QueryDsl, ExpressionMethods};
 
 use bcrypt::{ verify, DEFAULT_COST};
+use diesel::associations::HasTable;
 use diesel::mysql::Mysql;
 use rocket::{catch, catchers, delete, post, put, Config};
 use mysql::*;
-use mysql::prelude::Queryable;
+// use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
 use rocket::figment::Figment;
 use rocket::figment::providers::{Format, Toml};
 use rocket::serde::json::{json, Json, Value};
 use rocket::tokio::sync::Mutex;
-use crate::models::models::{Person, User};
+use crate::models::models::{Person,User};
 use rocket::fs::{relative, FileServer, NamedFile};
 use rocket_cors::{AllowedOrigins, CorsOptions};
-use rocket_sync_db_pools::{database,diesel};
+use rocket_sync_db_pools::{database};
 use crate::basic_auth::BasicAuth;
+use crate::schema::person::dsl::*;
+use crate::schema::{person, user};
+use crate::schema::user::dsl::*;
+// use crate::schema::user::{password, token, username};
+// use diesel::prelude::*;
+// use crate::schema::person;
 
 #[database("mysql_path")]
 struct DbConn(diesel::MysqlConnection);
 
-struct Dbconn{
-    conn:PooledConn
-}
+// struct Dbconn{
+//     conn:PooledConn
+// }
 struct UserResult {
     password:String,
     token:String,
@@ -48,25 +57,34 @@ async fn index() -> NamedFile {
     //fs::canonicalize("./html/index.html").unwrap().display().to_string()
     NamedFile::open("./html/index.html").await.unwrap()
 }
-/*
+
 #[get("/getall")]
-async fn get_all(sconn:&State<Mutex<Dbconn>>,_auth:BasicAuth)->Value{
+async fn get_all(conn: DbConn,_auth:BasicAuth)->Value{
     // println!("{}",auth.0);
-    let mut conn=& mut sconn.lock().await.conn;
-    let result:Vec<Row>=conn.query("SELECT * FROM person").unwrap();
+    // let result=LimitDsl::limit(person, 100).load::<Person>(&mut conn).await;
+    conn.run(|con| {
+        let persons=person::table
+            // .limit(100)
+            .load::<Person>(con)
+            .expect("Error loading persons");
+        json!(persons)
+    }).await
+    //let result:Vec<Person>=person.load::<Person>(&mut conn).await?;
+    // let result:Vec<Row>=conn.query("SELECT * FROM person").unwrap();
 
-    let mut persons:Vec<Person>=Vec::new();
-    for row in result {
-        persons.push( Person{
-            id: row.get(0).unwrap(),
-            name:row.get(1).unwrap(),
-            age: row.get(2).unwrap(),
-        });
-
-    }
-    json!(persons)
+    // let mut persons:Vec<Person>=Vec::new();
+    // for row in result {
+    //     persons.push( Person{
+    //         id: row.get(0).unwrap(),
+    //         name:row.get(1).unwrap(),
+    //         age: row.get(2).unwrap(),
+    //     });
+    //
+    // }
+    //  json!(result)
 }
 
+/*
 #[post("/create",format="json", data="<person>")]
 async fn create(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)->Value {
     let add_person=person.into_inner();
@@ -107,9 +125,11 @@ async fn update(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)
     json!("Successed")
 }
 
-#[post("/login",format="json",data="<user>")]
-async fn login(sconn:&State<Mutex<Dbconn>>,user:Json<User>)->Value{
-    let login_user=user.into_inner();
+
+ */
+#[post("/login",format="json",data="<user_data>")]
+async fn login(conn:DbConn,user_data:Json<User>)->Value{
+    let login_user=user_data.into_inner();
     //let pwd=hash(&login_user.password,DEFAULT_COST).unwrap();
     /*println!("{}",&pwd);
 
@@ -124,7 +144,30 @@ async fn login(sconn:&State<Mutex<Dbconn>>,user:Json<User>)->Value{
         None => {json!("failed")}
     }
     */
-    let mut conn=& mut sconn.lock().await.conn;
+    conn.run(|con| {
+        let result=user::table
+            .filter(username.eq(login_user.username))
+            .select((password,token))
+            .first::<(String,String)>(con);
+
+
+        match result {
+            Ok((pwd,tok))=>{
+                if verify(login_user.password,&pwd).unwrap()
+                {
+                    json!(format!("token:{}", &tok))
+                }
+                else {
+                    return json!("密码错误")
+                }
+
+            }
+            Err(e)=>{json!("用户名错误")}
+        }
+        // json!(result.unwrap())
+    }).await
+
+    /* let mut conn=& mut sconn.lock().await.conn;
     let result:Option<UserResult>=conn.exec_first("SELECT password,token FROM user where username=:name",params! {
         "name" => login_user.username.as_str(),
     }).map(
@@ -148,11 +191,13 @@ async fn login(sconn:&State<Mutex<Dbconn>>,user:Json<User>)->Value{
         }
         None=>{json!("用户名错误")}
     }
-
+*/
     //println!("{} {} {}",login_user.username,login_user.password,hash(&login_user.password,DEFAULT_COST).unwrap());
     //json!("Ok")
 }
-*/
+
+
+
 #[catch(401)]
 async fn unauthorized() -> Value {
     json!("unauthorized")
@@ -197,6 +242,7 @@ fn rocket() -> _ {
         // .manage(db_conn)
         // register routes
         // .mount("/", routes![get_all,index,login,update,create,delete])
+        .mount("/", routes![get_all,index,login])
         // .mount("/del", routes![delete])
         .mount("/", FileServer::from(relative!("html")))
         .register("/", catchers!(unauthorized))
