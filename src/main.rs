@@ -1,18 +1,26 @@
 mod models;
 mod basic_auth;
 
+ // #[macro_use] extern crate diesel;
+
 use bcrypt::{ verify, DEFAULT_COST};
+use diesel::mysql::Mysql;
 use rocket::{catch, catchers, delete, post, put, Config};
 use mysql::*;
 use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
 use rocket::figment::Figment;
+use rocket::figment::providers::{Format, Toml};
 use rocket::serde::json::{json, Json, Value};
 use rocket::tokio::sync::Mutex;
 use crate::models::models::{Person, User};
 use rocket::fs::{relative, FileServer, NamedFile};
 use rocket_cors::{AllowedOrigins, CorsOptions};
+use rocket_sync_db_pools::{database,diesel};
 use crate::basic_auth::BasicAuth;
+
+#[database("mysql_path")]
+struct DbConn(diesel::MysqlConnection);
 
 struct Dbconn{
     conn:PooledConn
@@ -40,6 +48,7 @@ async fn index() -> NamedFile {
     //fs::canonicalize("./html/index.html").unwrap().display().to_string()
     NamedFile::open("./html/index.html").await.unwrap()
 }
+/*
 #[get("/getall")]
 async fn get_all(sconn:&State<Mutex<Dbconn>>,_auth:BasicAuth)->Value{
     // println!("{}",auth.0);
@@ -143,7 +152,7 @@ async fn login(sconn:&State<Mutex<Dbconn>>,user:Json<User>)->Value{
     //println!("{} {} {}",login_user.username,login_user.password,hash(&login_user.password,DEFAULT_COST).unwrap());
     //json!("Ok")
 }
-
+*/
 #[catch(401)]
 async fn unauthorized() -> Value {
     json!("unauthorized")
@@ -152,32 +161,44 @@ async fn unauthorized() -> Value {
 #[launch]
 fn rocket() -> _ {
 
-    let url = "mysql://root:Jinxuan2013@localhost:3306/test";
-    let pool = Pool::new(url).unwrap(); // 获取连接池
-
-    let mut conn = pool.get_conn().unwrap();// 获取链接
-    let db_conn = Mutex::new(Dbconn{
-        conn
-    });
+    // let url = "mysql://root:Jinxuan2013@localhost:3306/test";
+    // let pool = Pool::new(url).unwrap(); // 获取连接池
+    //
+    // let mut conn = pool.get_conn().unwrap();// 获取链接
+    // let db_conn = Mutex::new(Dbconn{
+    //     conn
+    // });
 
     let cors= make_cors().to_cors().unwrap();
 
-    let config=Config::from(
-        Figment::from(rocket::Config::default())
-            .merge(("tls.certs","./ssl/cert.pem"))
-            .merge(("tls.key","./ssl/key.pem"))
-            .merge(("address","127.0.0.1"))
-            .merge(("port",8000))
-
-    );
+    let figment = Figment::from(rocket::Config::figment())
+        // .merge(Toml::file("Rocket.toml").nested())
+        .merge(("tls.certs","./ssl/cert.pem"))
+        .merge(("tls.key","./ssl/key.pem"))
+        .merge(("address","127.0.0.1"))
+        .merge(("port",8000));
 
 
-    rocket::custom(config)
+    // let config=Config::from(
+    //     Figment::from(rocket::Config::default())
+    //         .merge(("tls.certs","./ssl/cert.pem"))
+    //         .merge(("tls.key","./ssl/key.pem"))
+    //         .merge(("address","127.0.0.1"))
+    //         .merge(("port",8000))
+    //         // .merge(figment)
+    //         // .merge(Toml::file("Rocket.toml").nested())
+    //
+    // );
+
+
+    rocket::custom(figment)
+        // .configure(&config)
         .attach(cors)
-        .manage(db_conn)
+        // .manage(db_conn)
         // register routes
-        .mount("/", routes![get_all,index,login,update,create,delete])
+        // .mount("/", routes![get_all,index,login,update,create,delete])
         // .mount("/del", routes![delete])
         .mount("/", FileServer::from(relative!("html")))
         .register("/", catchers!(unauthorized))
+        .attach(DbConn::fairing())
 }

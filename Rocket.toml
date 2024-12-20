@@ -1,0 +1,2 @@
+﻿[global.databases]
+mysql_path ={ url = "mysql://root:Jinxuan2013@localhost:3306/test" }
