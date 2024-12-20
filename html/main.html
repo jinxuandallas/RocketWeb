@@ -68,8 +68,8 @@
                     }
                 },
                 modifyItem(rowIndex) {
-                    this.message = `${this.items[rowIndex].id} ${this.items[rowIndex].name}`;
-                    this.update_id=`${this.items[rowIndex].id}`
+                    this.message = `${this.items[rowIndex].ID} ${this.items[rowIndex].name}`;
+                    this.update_id=`${this.items[rowIndex].ID}`
                     this.update_name=`${this.items[rowIndex].name}`
                     this.update_age=`${this.items[rowIndex].age}`
                     this.update_panel=true;
@@ -103,7 +103,7 @@
                     };
 
                     let update_data={
-                        id:parseInt(this.update_id),
+                        ID:parseInt(this.update_id),
                         name:this.update_name,
                         age:parseInt(this.update_age)
                     }
@@ -132,14 +132,13 @@
                         }
                     };
 
-                    let update_data={
-                        id:0,
+                    let add_data={
                         name:this.add_name,
                         age:parseInt(this.add_age)
                     }
                     //.message=update_data;
 
-                    await axios.post('https://127.0.0.1:8000/create', update_data, config)
+                    await axios.post('https://127.0.0.1:8000/create', add_data, config)
                         // .then(function (response) {
                             // this.message = `${response.data}`;
                         // })
@@ -166,7 +165,7 @@
                                 'Authorization': `${this.authToken}`
                             }
                         };
-                        await axios.delete('https://127.0.0.1:8000/del/'+this.items[rowIndex].id, config);
+                        await axios.delete('https://127.0.0.1:8000/del/'+this.items[rowIndex].ID, config);
 
                     } catch (error) {
                         this.UnauthorizedRedirect(error);

@@ -12,6 +12,7 @@ dependencies = [
  "rocket",
  "rocket_cors",
  "rocket_sync_db_pools",
+ "serde",
 ]
 
 [[package]]

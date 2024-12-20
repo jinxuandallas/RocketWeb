@@ -9,6 +9,7 @@ diesel = { version = "2.2.6", features = ["mysql","r2d2"] }
 mysql = "25.0.1"
 rocket = { version = "0.5.1", features = ["json","tls"] }
 rocket_cors = "0.6.0"
+serde = { version = "1.0.216", features = ["derive"] }
 
 [dependencies.rocket_sync_db_pools]
 version = "0.1.0"

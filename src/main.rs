@@ -6,23 +6,24 @@ mod schema;
 use diesel::{RunQueryDsl, query_dsl::methods::{FindDsl, LimitDsl}, QueryDsl, ExpressionMethods};
 
 use bcrypt::{ verify, DEFAULT_COST};
-use diesel::associations::HasTable;
-use diesel::mysql::Mysql;
+// use diesel::associations::HasTable;
+// use diesel::mysql::Mysql;
 use rocket::{catch, catchers, delete, post, put, Config};
-use mysql::*;
+// use mysql::*;
 // use mysql::prelude::Queryable;
 use rocket::{get, http, launch, routes, State};
 use rocket::figment::Figment;
-use rocket::figment::providers::{Format, Toml};
+// use rocket::figment::providers::{Format, Toml};
 use rocket::serde::json::{json, Json, Value};
-use rocket::tokio::sync::Mutex;
-use crate::models::models::{Person,User};
+// use rocket::tokio::sync::Mutex;
+use crate::models::models::{NewPerson, Person, User};
 use rocket::fs::{relative, FileServer, NamedFile};
 use rocket_cors::{AllowedOrigins, CorsOptions};
 use rocket_sync_db_pools::{database};
 use crate::basic_auth::BasicAuth;
-use crate::schema::person::dsl::*;
+// use crate::schema::person::dsl::*;
 use crate::schema::{person, user};
+use crate::schema::person::{name,age};
 use crate::schema::user::dsl::*;
 // use crate::schema::user::{password, token, username};
 // use diesel::prelude::*;
@@ -34,10 +35,10 @@ struct DbConn(diesel::MysqlConnection);
 // struct Dbconn{
 //     conn:PooledConn
 // }
-struct UserResult {
-    password:String,
-    token:String,
-}
+// struct UserResult {
+//     password:String,
+//     token:String,
+// }
 
 /// 解决跨域问题
 fn make_cors() -> CorsOptions {
@@ -84,10 +85,17 @@ async fn get_all(conn: DbConn,_auth:BasicAuth)->Value{
     //  json!(result)
 }
 
-/*
-#[post("/create",format="json", data="<person>")]
-async fn create(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)->Value {
-    let add_person=person.into_inner();
+
+#[post("/create",format="json", data="<new_person>")]
+async fn create(conn:DbConn,new_person:Json<NewPerson>,_auth:BasicAuth)->Value {
+    let add_person=new_person.into_inner();
+    conn.run(|con| {
+       let inserted_rows = diesel::insert_into(person::table)
+           .values(add_person)
+           .execute(con).expect("Error saving person");
+        json!(inserted_rows)
+    }).await
+    /*
     let mut conn=& mut sconn.lock().await.conn;
     let stmt = conn.prep("INSERT INTO person (name, age) VALUES (:name, :age)")
         .unwrap();
@@ -96,10 +104,18 @@ async fn create(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)
      "age" => add_person.age,
 }).unwrap();
     json!(conn.last_insert_id())
+    */
+
 }
 
+
 #[delete("/del/<id>")]
-async fn delete(id:i32,sconn:&State<Mutex<Dbconn>>,_auth:BasicAuth)->Value {
+async fn delete(id:i32,conn:DbConn,_auth:BasicAuth)->Value {
+    conn.run(move |con| {
+        let num_deleted=diesel::delete(FindDsl::find(person::table,id)).execute(con).expect("Error deleting person");
+        json!(num_deleted)
+    }).await
+    /*
     let mut conn=& mut sconn.lock().await.conn;
     println!("{}",id);
     let stmt = conn.prep("delete from person where id=:id")
@@ -109,11 +125,21 @@ async fn delete(id:i32,sconn:&State<Mutex<Dbconn>>,_auth:BasicAuth)->Value {
 
 }).unwrap();
     json!(conn.last_insert_id())
+
+     */
 }
 
-#[put("/update",format="json", data="<person>")]
-async fn update(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)->Value {
-    let update_person=person.into_inner();
+#[put("/update",format="json", data="<person_data>")]
+async fn update(conn:DbConn,person_data:Json<Person>,_auth:BasicAuth)->Value {
+    let update_person=person_data.into_inner();
+    conn.run(move |con| {
+        diesel::update(FindDsl::find(person::table,update_person.ID))
+            .set((name.eq(update_person.name),age.eq(update_person.age)))
+            .execute(con)
+            .expect("Update failed");
+        json!("Successed")
+    }).await
+    /*
     let mut conn=& mut sconn.lock().await.conn;
     let stmt = conn.prep("update person set name=:name, age=:age where id=:id")
         .unwrap();
@@ -123,10 +149,11 @@ async fn update(sconn:&State<Mutex<Dbconn>>,person:Json<Person>,_auth:BasicAuth)
      "id" => update_person.id,
 }).unwrap();
     json!("Successed")
+
+     */
 }
 
 
- */
 #[post("/login",format="json",data="<user_data>")]
 async fn login(conn:DbConn,user_data:Json<User>)->Value{
     let login_user=user_data.into_inner();
@@ -162,7 +189,7 @@ async fn login(conn:DbConn,user_data:Json<User>)->Value{
                 }
 
             }
-            Err(e)=>{json!("用户名错误")}
+            Err(_)=>{json!("用户名错误")}
         }
         // json!(result.unwrap())
     }).await
@@ -241,8 +268,8 @@ fn rocket() -> _ {
         .attach(cors)
         // .manage(db_conn)
         // register routes
-        // .mount("/", routes![get_all,index,login,update,create,delete])
-        .mount("/", routes![get_all,index,login])
+        .mount("/", routes![get_all,index,login,update,create,delete])
+        // .mount("/", routes![get_all,index,login,create,delete,update])
         // .mount("/del", routes![delete])
         .mount("/", FileServer::from(relative!("html")))
         .register("/", catchers!(unauthorized))
