@@ -24,7 +24,6 @@ use rocket_sync_db_pools::{database};
 use crate::basic_auth::BasicAuth;
 // use crate::schema::person::dsl::*;
 use crate::schema::{person, user};
-use crate::schema::person::{name,age};
 use crate::schema::user::dsl::*;
 // use crate::schema::user::{password, token, username};
 // use diesel::prelude::*;

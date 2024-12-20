@@ -15,9 +15,9 @@ serde = { version = "1.0.216", features = ["derive"] }
 version = "0.1.0"
 features = ["diesel_mysql_pool","diesel"]
 
-[default.tls]
-key = "./ssl/key.pem"     # Path or bytes to DER-encoded ASN.1 PKCS#1/#8 or SEC1 key.
-certs = "./ssl/cert.pem"
+#[default.tls]
+#key = "./ssl/key.pem"     # Path or bytes to DER-encoded ASN.1 PKCS#1/#8 or SEC1 key.
+#certs = "./ssl/cert.pem"
 
 [profile.release]
 lto = true # 启用链路时间优化
