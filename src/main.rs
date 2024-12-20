@@ -2,8 +2,9 @@ mod models;
 mod basic_auth;
 mod schema;
 //#[macro_use] extern crate diesel;
+mod repositories;
 
-use diesel::{RunQueryDsl, query_dsl::methods::{FindDsl, LimitDsl}, QueryDsl, ExpressionMethods};
+use diesel::{RunQueryDsl, query_dsl::methods::{FilterDsl,SelectDsl, FindDsl, LimitDsl}, ExpressionMethods};
 
 use bcrypt::{ verify, DEFAULT_COST};
 // use diesel::associations::HasTable;
@@ -28,6 +29,7 @@ use crate::schema::user::dsl::*;
 // use crate::schema::user::{password, token, username};
 // use diesel::prelude::*;
 // use crate::schema::person;
+use crate::repositories::PersonRepository;
 
 #[database("mysql_path")]
 struct DbConn(diesel::MysqlConnection);
@@ -64,10 +66,7 @@ async fn get_all(conn: DbConn,_auth:BasicAuth)->Value{
     // println!("{}",auth.0);
     // let result=LimitDsl::limit(person, 100).load::<Person>(&mut conn).await;
     conn.run(|con| {
-        let persons=person::table
-            // .limit(100)
-            .load::<Person>(con)
-            .expect("Error loading persons");
+        let persons=PersonRepository::find_all(con);
         json!(persons)
     }).await
     //let result:Vec<Person>=person.load::<Person>(&mut conn).await?;
@@ -89,10 +88,8 @@ async fn get_all(conn: DbConn,_auth:BasicAuth)->Value{
 #[post("/create",format="json", data="<new_person>")]
 async fn create(conn:DbConn,new_person:Json<NewPerson>,_auth:BasicAuth)->Value {
     let add_person=new_person.into_inner();
-    conn.run(|con| {
-       let inserted_rows = diesel::insert_into(person::table)
-           .values(add_person)
-           .execute(con).expect("Error saving person");
+    conn.run(move |con| {
+       let inserted_rows = PersonRepository::create(con,&add_person);
         json!(inserted_rows)
     }).await
     /*
@@ -112,7 +109,7 @@ async fn create(conn:DbConn,new_person:Json<NewPerson>,_auth:BasicAuth)->Value {
 #[delete("/del/<id>")]
 async fn delete(id:i32,conn:DbConn,_auth:BasicAuth)->Value {
     conn.run(move |con| {
-        let num_deleted=diesel::delete(FindDsl::find(person::table,id)).execute(con).expect("Error deleting person");
+        let num_deleted=PersonRepository::delete(con,id);
         json!(num_deleted)
     }).await
     /*
@@ -133,10 +130,7 @@ async fn delete(id:i32,conn:DbConn,_auth:BasicAuth)->Value {
 async fn update(conn:DbConn,person_data:Json<Person>,_auth:BasicAuth)->Value {
     let update_person=person_data.into_inner();
     conn.run(move |con| {
-        diesel::update(FindDsl::find(person::table,update_person.ID))
-            .set((name.eq(update_person.name),age.eq(update_person.age)))
-            .execute(con)
-            .expect("Update failed");
+        PersonRepository::save(con,&update_person);
         json!("Successed")
     }).await
     /*
@@ -269,7 +263,6 @@ fn rocket() -> _ {
         // .manage(db_conn)
         // register routes
         .mount("/", routes![get_all,index,login,update,create,delete])
-        // .mount("/", routes![get_all,index,login,create,delete,update])
         // .mount("/del", routes![delete])
         .mount("/", FileServer::from(relative!("html")))
         .register("/", catchers!(unauthorized))
